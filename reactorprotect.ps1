@@ -8,7 +8,7 @@
 .PARAMETER reactorExe
 Путь до исполняемого файла обфускатора
 .EXAMPLE
-./reactorprotect.ps1 -path 'C:\ReportingClient' -exclude (Get-Content exclude.lst)
+.\reactorprotect.ps1 -path 'C:\ReportingClient' -exclude (Get-Content exclude.lst)
 #>
 
 [CmdletBinding()]
