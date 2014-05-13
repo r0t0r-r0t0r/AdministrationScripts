@@ -42,4 +42,6 @@ Write-Verbose $command
 
 Invoke-Expression "& $command"
 
+Remove-Item -Path (Join-Path $path *.hash)
+
 Write-Verbose "Protection completed at $(Get-Date)"
