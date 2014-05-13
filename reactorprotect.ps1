@@ -26,7 +26,11 @@ Write-Verbose "Protection started at $(Get-Date)"
 $libs = Get-ChildItem -Path (Join-Path $path *.dll) -Exclude $exclude -File
 $exe = Get-ChildItem -Path (Join-Path $path *.exe) -Exclude $exclude -File
 
-Write-Verbose $exe
+Write-Verbose 'Found libs:'
+$libs | ForEach-Object { Write-Verbose $_.FullName }
+
+Write-Verbose 'Found exe:'
+$exe | ForEach-Object { Write-Verbose $_.FullName }
 
 if ($exe.Count -ne 1)
 {
@@ -38,6 +42,8 @@ $satellitePart = "-satellite_assemblies `"$($libs -join '/')`""
 $settingsPart = '-suppressildasm 0 -obfuscation 0 -necrobit 1 -stringencryption 1 -targetfile "<AssemblyLocation>\<AssemblyFileName>"'
 
 $command = "`"$reactorExe`" $targetPart $satellitePart $settingsPart"
+
+Write-Verbose 'Resulting command:'
 Write-Verbose $command
 
 Invoke-Expression "& $command"
