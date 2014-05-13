@@ -26,6 +26,8 @@ Write-Verbose "Protection started at $(Get-Date)"
 $libs = Get-ChildItem -Path (Join-Path $path *.dll) -Exclude $exclude -File
 $exe = Get-ChildItem -Path (Join-Path $path *.exe) -Exclude $exclude -File
 
+Write-Verbose $exe
+
 if ($exe.Count -ne 1)
 {
     throw "Exactly one exe file expected"
