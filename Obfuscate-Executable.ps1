@@ -7,12 +7,19 @@
 Исполняемый файл, который требуется обфусцировать
 .PARAMETER Libraries
 Библиотеки, которые нужно обфусцировать дополнительно к исполняемому файлу
+.PARAMETER SnkFile
+Файл пары ключей для подписи сборок после обфускации
 .PARAMETER ReactorExecutable
 Путь до исполняемого файла обфускатора
 .EXAMPLE
-.\reactorprotect.ps1 -Path 'C:\ReportingClient' -Executable RoadRegionEditor.exe
+.\Obfuscate-Executable.ps1 -Path 'C:\ReportingClient' -Executable RoadRegionEditor.exe
 
 Обфусцирует только исполняемый файл RoadRegionEditor.exe, лежащий в папке C:\ReportingClient
+.EXAMPLE
+.\Obfuscate-Executable.ps1 -Path C:\TechnologicalParametersEditor -Executable TechnologicalParametersEditor.exe -Libraries TechnologicalParameters.*.dll -SnkFile C:\src\Spectrans\Spectrans.snk
+
+Обфусцирует исполняемый файл и библиотеки, имя файла которых начинается с TachnologicalParameters. Для подписи сборок после обфускации используется файл пары ключей (C:\src\Spectrans\Spectrans.snk)
+Будут подписаны только те сборки, которые имели сильное имя до обфускации
 #>
 
 [CmdletBinding()]
@@ -24,6 +31,8 @@ param (
     [string]$Executable,
 
     [string[]]$Libraries = @(),
+
+    [string]$SnkFile,
 
     [string]$ReactorExecutable = 'C:\Program Files (x86)\Eziriz\.NET Reactor\dotNET_Reactor.Console.exe'
 )
@@ -41,20 +50,19 @@ $libs | ForEach-Object { Write-Verbose $_.FullName }
 
 $targetPart = "-file `"$exe`""
 
-if ($libs.Count -eq 0)
+if ($SnkFile)
 {
-    $satellitePart = ""
+    $snKeyPairPart = "-snkeypair $SnkFile"
 }
-else
+
+if ($libs.Count -gt 0)
 {
     $satellitePart = "-satellite_assemblies `"$($libs -join '/')`""
 }
 
 $settingsPart = '-suppressildasm 0 -obfuscation 0 -necrobit 1 -stringencryption 1 -targetfile "<AssemblyLocation>\<AssemblyFileName>"'
 
-$optionsPart = '-suppressildasm 0 -obfuscation 0 -necrobit 1 -stringencryption 1 -targetfile "<AssemblyLocation>\<AssemblyFileName>"'
-
-$arguments = "$targetPart $satellitePart $optionsPart"
+$arguments = "$targetPart $snKeyPairPart $satellitePart $settingsPart"
 
 Write-Verbose 'Resulting command:'
 Write-Verbose "`"$ReactorExecutable`" $arguments"
