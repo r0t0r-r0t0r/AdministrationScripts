@@ -1,53 +1,72 @@
 <#
 .SYNOPSIS
 Выполняет обфускацию заданного проекта
-.PARAMETER path
+.PARAMETER Path
 Папка с двоичными файлами проекта, который нужно обфусцировать
-.PARAMETER exclude
-Список файлов, которые требуется исключить из процесса обфускации. Могут использоваться символы подстановки * и .
-.PARAMETER reactorExe
+.PARAMETER Executable
+Исполняемый файл, который требуется обфусцировать
+.PARAMETER Libraries
+Библиотеки, которые нужно обфусцировать дополнительно к исполняемому файлу
+.PARAMETER ReactorExecutable
 Путь до исполняемого файла обфускатора
 .EXAMPLE
-.\reactorprotect.ps1 -path 'C:\ReportingClient' -exclude (Get-Content exclude.lst)
+.\reactorprotect.ps1 -Path 'C:\ReportingClient' -Executable RoadRegionEditor.exe
+
+Обфусцирует только исполняемый файл RoadRegionEditor.exe, лежащий в папке C:\ReportingClient
 #>
 
 [CmdletBinding()]
 param (
     [Parameter(Mandatory=$True)]
-    [string]$path,
+    [string]$Path,
 
-    [string[]]$exclude = @(),
+    [Parameter(Mandatory=$True)]
+    [string]$Executable,
 
-    [string]$reactorExe = 'C:\Program Files (x86)\Eziriz\.NET Reactor\dotNET_Reactor.exe'
+    [string[]]$Libraries = @(),
+
+    [string]$ReactorExecutable = 'C:\Program Files (x86)\Eziriz\.NET Reactor\dotNET_Reactor.Console.exe'
 )
 
 Write-Verbose "Protection started at $(Get-Date)"
 
-$libs = Get-ChildItem -Path (Join-Path $path *.dll) -Exclude $exclude -File
-$exe = Get-ChildItem -Path (Join-Path $path *.exe) -Exclude $exclude -File
+$exe = Join-Path $Path $Executable
+$libs = $Libraries | ForEach-Object {Join-Path $Path $_} | Get-ChildItem -File
 
-Write-Verbose 'Found libs:'
+Write-Verbose 'Executable to obfuscate:'
+Write-Verbose $exe
+
+Write-Verbose 'Libraries to obfuscate:'
 $libs | ForEach-Object { Write-Verbose $_.FullName }
 
-Write-Verbose 'Found exe:'
-$exe | ForEach-Object { Write-Verbose $_.FullName }
+$targetPart = "-file `"$exe`""
 
-if ($exe.Count -ne 1)
+if ($libs.Count -eq 0)
 {
-    throw "Exactly one exe file expected"
+    $satellitePart = ""
+}
+else
+{
+    $satellitePart = "-satellite_assemblies `"$($libs -join '/')`""
 }
 
-$targetPart = "-file `"$exe`""
-$satellitePart = "-satellite_assemblies `"$($libs -join '/')`""
 $settingsPart = '-suppressildasm 0 -obfuscation 0 -necrobit 1 -stringencryption 1 -targetfile "<AssemblyLocation>\<AssemblyFileName>"'
 
-$command = "`"$reactorExe`" $targetPart $satellitePart $settingsPart"
+$optionsPart = '-suppressildasm 0 -obfuscation 0 -necrobit 1 -stringencryption 1 -targetfile "<AssemblyLocation>\<AssemblyFileName>"'
+
+$arguments = "$targetPart $satellitePart $optionsPart"
 
 Write-Verbose 'Resulting command:'
-Write-Verbose $command
+Write-Verbose "`"$ReactorExecutable`" $arguments"
 
-Invoke-Expression "& $command"
+Write-Verbose 'Obfuscation is starting'
+$psi = New-Object System.Diagnostics.ProcessStartInfo $ReactorExecutable
+$psi.Arguments = $arguments
+$proc = [System.Diagnostics.Process]::Start($psi)
+$proc.WaitForExit();
+Write-Verbose 'Obfuscation complete'
 
-Remove-Item -Path (Join-Path $path *.hash)
+Write-Verbose 'Cleaning up'
+Remove-Item -Path (Join-Path $Path *.hash)
 
 Write-Verbose "Protection completed at $(Get-Date)"
